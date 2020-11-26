@@ -5,7 +5,6 @@ package currency_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -115,7 +114,7 @@ func TestNewAmountFromBigInt(t *testing.T) {
 		}
 		wantError := `currency/NewAmountFromBigInt: invalid number "nil"`
 		if e.Error() != wantError {
-			t.Errorf("got %v, want %v", e.Error(), wantError)
+			t.Errorf("got %+v, want %+v", e.Error(), wantError)
 		}
 	} else {
 		t.Errorf("got %T, want currency.InvalidNumberError", err)
@@ -838,7 +837,7 @@ func TestAmount_BigInt(t *testing.T) {
 		minor     int64
 		wantError error
 	}{
-		{"", "USD", 0, currency.InvalidNumberError{"NewAmountFromBigInt", fmt.Sprint(nil)}},
+		{"", "USD", 0, currency.InvalidNumberError{"NewAmountFromBigInt", "nil"}},
 		{"100", "UST", 0, currency.InvalidCurrencyCodeError{"NewAmountFromBigInt", "UST"}},
 		{"100", "JPY", 100, nil},
 	}
