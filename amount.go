@@ -78,31 +78,22 @@ func NewAmount(n, currencyCode string) (Amount, error) {
 	return Amount{number, currencyCode}, nil
 }
 
-// NewAmountFromBigInt creates a new Amount from a big.Int and a currency code.
-func NewAmountFromBigInt(n *big.Int, currencyCode string) (Amount, error) {
-	if n == nil {
-		return Amount{}, InvalidNumberError{"nil"}
+// NewAmountFromBigInt creates a new Amount from a big integer and a currency code.
+func NewAmountFromBigInt(amt *big.Int, currencyCode string) (Amount, error) {
+	if amt == nil {
+		return Amount{}, InvalidNumberError{"NewAmountFromBigInt", fmt.Sprint(amt)}
 	}
-	d, ok := GetDigits(currencyCode)
-	if !ok {
-		return Amount{}, InvalidCurrencyCodeError{currencyCode}
+	if currencyCode == "" || !IsValid(currencyCode) {
+		return Amount{}, InvalidCurrencyCodeError{"NewAmountFromBigInt", currencyCode}
 	}
-	coeff := new(apd.BigInt).SetMathBigInt(n)
-	number := apd.NewWithBigInt(coeff, -int32(d))
+	d, _ := GetDigits(currencyCode)
 
-	return Amount{*number, currencyCode}, nil
+	return Amount{apd.NewWithBigInt(amt, -int32(d)), currencyCode}, nil
 }
 
-// NewAmountFromInt64 creates a new Amount from an int64 and a currency code.
-func NewAmountFromInt64(n int64, currencyCode string) (Amount, error) {
-	d, ok := GetDigits(currencyCode)
-	if !ok {
-		return Amount{}, InvalidCurrencyCodeError{currencyCode}
-	}
-	number := apd.Decimal{}
-	number.SetFinite(n, -int32(d))
-
-	return Amount{number, currencyCode}, nil
+// NewAmount creates a new Amount from an int64 and a currency code.
+func NewAmountFromInt64(amt int64, currencyCode string) (Amount, error) {
+	return NewAmountFromBigInt(big.NewInt(amt), currencyCode)
 }
 
 // Number returns the number as a numeric string.
@@ -128,7 +119,6 @@ func (a Amount) BigInt() *big.Int {
 		// The coefficient is always positive, apd stores the sign separately.
 		n = n.Neg(n)
 	}
-
 	return n
 }
 
