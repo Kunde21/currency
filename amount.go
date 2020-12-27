@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 
@@ -79,21 +80,22 @@ func NewAmount(n, currencyCode string) (Amount, error) {
 }
 
 // NewAmountFromBigInt creates a new Amount from a big integer and a currency code.
-func NewAmountFromBigInt(amt *big.Int, currencyCode string) (Amount, error) {
-	if amt == nil {
-		return Amount{}, InvalidNumberError{"NewAmountFromBigInt", fmt.Sprint(amt)}
+func NewAmountFromBigInt(n *big.Int, currencyCode string) (Amount, error) {
+	if n == nil {
+		return Amount{}, InvalidNumberError{Number: fmt.Sprint(n)}
 	}
 	if currencyCode == "" || !IsValid(currencyCode) {
-		return Amount{}, InvalidCurrencyCodeError{"NewAmountFromBigInt", currencyCode}
+		return Amount{}, InvalidCurrencyCodeError{CurrencyCode: currencyCode}
 	}
 	d, _ := GetDigits(currencyCode)
 
-	return Amount{apd.NewWithBigInt(amt, -int32(d)), currencyCode}, nil
+	coeff := new(apd.BigInt).SetMathBigInt(n)
+	return Amount{*apd.NewWithBigInt(coeff, -int32(d)), currencyCode}, nil
 }
 
-// NewAmount creates a new Amount from an int64 and a currency code.
-func NewAmountFromInt64(amt int64, currencyCode string) (Amount, error) {
-	return NewAmountFromBigInt(big.NewInt(amt), currencyCode)
+// NewAmountFromInt64 creates a new Amount from an int64 and a currency code.
+func NewAmountFromInt64(n int64, currencyCode string) (Amount, error) {
+	return NewAmountFromBigInt(big.NewInt(n), currencyCode)
 }
 
 // Number returns the number as a numeric string.
@@ -127,7 +129,6 @@ func (a Amount) BigInt() *big.Int {
 func (a Amount) Int64() (int64, error) {
 	n := a.Round().number
 	n.Exponent = 0
-
 	return n.Int64()
 }
 
@@ -223,7 +224,6 @@ func (a Amount) RoundTo(digits uint8, mode RoundingMode) Amount {
 	if digits == DefaultDigits {
 		digits, _ = GetDigits(a.currencyCode)
 	}
-
 	result := apd.Decimal{}
 	ctx := roundingContext(&a.number, mode)
 	ctx.Quantize(&result, &a.number, -int32(digits))
@@ -388,15 +388,19 @@ var (
 
 // decimalContext returns the decimal context to use for a calculation.
 // The returned context is not safe for concurrent modification.
-func decimalContext(decimals ...*apd.Decimal) *apd.Context {
-	// Choose between decimal64 (19 digits) and decimal128 (39 digits)
-	// based on operand size (> int32), for increased performance.
-	for _, d := range decimals {
-		if d.Coeff.BitLen() > 31 {
-			return decimalContextPrecision39
-		}
+func decimalContext(digits ...*apd.Decimal) *apd.Context {
+	dg := &apd.BigInt{}
+	for _, d := range digits {
+		dg = dg.Add(dg, (&apd.BigInt{}).SetInt64(d.NumDigits()+int64(-d.Exponent)))
 	}
-	return decimalContextPrecision19
+	switch {
+	case !dg.IsInt64(), dg.Int64() > math.MaxUint32:
+		return apd.BaseContext.WithPrecision(math.MaxUint32)
+	case dg.IsInt64() && dg.Int64() < 16:
+		return apd.BaseContext.WithPrecision(16)
+	default:
+		return apd.BaseContext.WithPrecision(uint32(dg.Int64()))
+	}
 }
 
 // roundingContext returns the decimal context to use for rounding.

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -58,10 +59,10 @@ func TestNewAmount(t *testing.T) {
 func TestNewAmountFromBigInt(t *testing.T) {
 	_, err := currency.NewAmountFromBigInt(nil, "USD")
 	if e, ok := err.(currency.InvalidNumberError); ok {
-		if e.Number != "nil" {
+		if e.Number != "<nil>" {
 			t.Errorf("got %v, want nil", e.Number)
 		}
-		wantError := `invalid number "nil"`
+		wantError := `invalid number "<nil>"`
 		if e.Error() != wantError {
 			t.Errorf("got %v, want %v", e.Error(), wantError)
 		}
@@ -572,11 +573,12 @@ func TestAmount_RoundTo(t *testing.T) {
 		{"12345678901234567890.0345", 3, currency.RoundDown, "12345678901234567890.034"},
 	}
 
-	for _, tt := range tests {
-		t.Run("", func(t *testing.T) {
+	for i, tt := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			a, _ := currency.NewAmount(tt.number, "USD")
 			b := a.RoundTo(tt.digits, tt.mode)
 			if b.Number() != tt.want {
+				t.Logf("number %v, digits %v, mode %v", tt.number, tt.digits, tt.mode)
 				t.Errorf("got %v, want %v", b.Number(), tt.want)
 			}
 			// Confirm that a is unchanged.
