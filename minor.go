@@ -30,17 +30,17 @@ func NewMinor(n, currencyCode string) (Minor, error) {
 }
 
 // ToMinor wraps an amount as a minor unit amount.
-func ToMinor(a Amount) Minor { return Minor{Amount: a} }
+func ToMinor(a Amount) Minor { return Minor{Amount: a.Round()} }
 
 // ToAmount unwraps the underlying abount, converting back to major currency units.
-func (m Minor) ToAmount() Amount { return m.Amount }
+func (m Minor) ToAmount() Amount { return m.Amount.Round() }
 
 // Number returns the number as a numeric string.
 func (m Minor) Number() string {
 	if m.number == nil {
 		return "0"
 	}
-	return m.number.Coeff.String()
+	return m.Round().number.Coeff.String()
 }
 
 // MinorUnits returns a in minor units.
@@ -58,7 +58,7 @@ func (m Minor) Convert(currencyCode, rate string) (Minor, error) {
 	if err != nil {
 		return Minor{}, err
 	}
-	return Minor{Amount: a}, nil
+	return ToMinor(a), nil
 }
 
 // Add adds m and b together and returns the result.
@@ -67,7 +67,7 @@ func (m Minor) Add(b Minor) (Minor, error) {
 	if err != nil {
 		return Minor{}, err
 	}
-	return Minor{Amount: a}, nil
+	return ToMinor(a), nil
 }
 
 // Sub subtracts b from m and returns the result.
@@ -76,7 +76,7 @@ func (m Minor) Sub(b Minor) (Minor, error) {
 	if err != nil {
 		return Minor{}, err
 	}
-	return Minor{Amount: a}, nil
+	return ToMinor(a), nil
 }
 
 // Mul multiplies m by n and returns the result.
@@ -85,7 +85,7 @@ func (m Minor) Mul(n string) (Minor, error) {
 	if err != nil {
 		return Minor{}, err
 	}
-	return Minor{Amount: a}, nil
+	return ToMinor(a), nil
 }
 
 // Div multiplies m by n and returns the result.
@@ -94,7 +94,7 @@ func (m Minor) Div(n string) (Minor, error) {
 	if err != nil {
 		return Minor{}, err
 	}
-	return Minor{Amount: a}, nil
+	return ToMinor(a), nil
 }
 
 // Round is a shortcut for RoundTo(currency.DefaultDigits, currency.RoundHalfUp).
