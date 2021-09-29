@@ -115,3 +115,53 @@ func TestMinorMarshal(t *testing.T) {
 		}
 	}
 }
+
+func TestMajor(t *testing.T) {
+	tests := []struct {
+		amt    string
+		cur    string
+		err    error
+		number string
+		strVal string
+	}{
+		{
+			amt:    "10",
+			cur:    "KWD",
+			err:    nil,
+			number: "10000",
+			strVal: "10.000 KWD",
+		},
+		{
+			amt:    "10.99",
+			cur:    "EUR",
+			err:    nil,
+			number: "1099",
+			strVal: "10.99 EUR",
+		},
+		{
+			amt:    "100.50",
+			cur:    "USD",
+			err:    nil,
+			number: "10050",
+			strVal: "100.50 USD",
+		},
+	}
+	for i, tt := range tests {
+		a, err := NewAmount(tt.amt, tt.cur)
+		if err != nil {
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%d: got %T, want %T", i, err, tt.err)
+			}
+			if err.Error() != tt.err.Error() {
+				t.Errorf("%d: got %v, want %v", i, err.Error(), tt.err.Error())
+			}
+		}
+		m := ToMinor(a)
+		if m.Number() != tt.number {
+			t.Errorf("%d number: got %v, want %v", i, m.Number(), tt.number)
+		}
+		if m.String() != tt.strVal {
+			t.Errorf("%d string: got %v, want %v", i, m.String(), tt.strVal)
+		}
+	}
+}
