@@ -20,14 +20,14 @@ func TestMinor(t *testing.T) {
 		{
 			amt:    "10.99",
 			cur:    "EUR",
-			err:    InvalidNumberError{"NewMinor", "10.99"},
+			err:    InvalidNumberError{"10.99"},
 			number: "0",
 			strVal: "0 ",
 		},
 		{
 			amt:    "NaN",
 			cur:    "USD",
-			err:    InvalidNumberError{"NewMinor", "NaN"},
+			err:    InvalidNumberError{"NaN"},
 			number: "0",
 			strVal: "0 ",
 		},

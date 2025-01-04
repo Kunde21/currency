@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/cockroachdb/apd/v2"
+	"github.com/cockroachdb/apd/v3"
 )
 
 // Minor stores a decimal number with its currency code.  All monetary amounts are in minor units.
@@ -18,15 +18,15 @@ type Minor struct {
 
 // NewMinor creates a new Amount from a numeric string and a currency code.
 func NewMinor(n, currencyCode string) (Minor, error) {
-	num, ok := big.NewInt(0).SetString(n, 10)
-	if !ok {
-		return Minor{}, InvalidNumberError{"NewMinor", n}
+	num := &apd.BigInt{}
+	if _, ok := num.SetString(n, 10); !ok {
+		return Minor{}, InvalidNumberError{n}
 	}
 	if currencyCode == "" || !IsValid(currencyCode) {
-		return Minor{}, InvalidCurrencyCodeError{"NewAmount", currencyCode}
+		return Minor{}, InvalidCurrencyCodeError{currencyCode}
 	}
 	d, _ := GetDigits(currencyCode)
-	return Minor{Amount: Amount{apd.NewWithBigInt(num, -int32(d)), currencyCode}}, nil
+	return Minor{Amount: Amount{*apd.NewWithBigInt(num, -int32(d)), currencyCode}}, nil
 }
 
 // ToMinor wraps an amount as a minor unit amount.
@@ -37,19 +37,13 @@ func (m Minor) ToAmount() Amount { return m.Amount.Round() }
 
 // Number returns the number as a numeric string.
 func (m Minor) Number() string {
-	if m.number == nil {
-		return "0"
-	}
-	return m.Round().number.Coeff.String()
+	n := m.Round()
+	return n.number.Coeff.String()
 }
 
 // MinorUnits returns a in minor units.
 func (m Minor) MinorUnits() *big.Int {
-	if m.number == nil {
-		return nil
-	}
-	c := m.Round().number.Coeff
-	return &c
+	return m.BigInt()
 }
 
 // Convert converts to a divverent currency.
@@ -109,10 +103,9 @@ func (a Minor) RoundTo(digits uint8, mode RoundingMode) Minor {
 
 // Cmp compares a and b and returns:
 //
-//   -1 if a <  b
-//    0 if a == b
-//   +1 if a >  b
-//
+//	-1 if a <  b
+//	 0 if a == b
+//	+1 if a >  b
 func (a Minor) Cmp(b Minor) (int, error) { return a.Amount.Cmp(b.Amount) }
 
 // Equal returns whether a and b are equal.
@@ -129,7 +122,7 @@ func (m Minor) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
 func (m *Minor) UnmarshalBinary(data []byte) error {
 	if len(data) < 3 {
-		return InvalidCurrencyCodeError{"Amount.UnmarshalBinary", string(data)}
+		return InvalidCurrencyCodeError{string(data)}
 	}
 	n, err := NewMinor(string(data[3:]), string(data[0:3]))
 	if err != nil {
